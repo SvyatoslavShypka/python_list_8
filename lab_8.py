@@ -1,8 +1,8 @@
 import sys
 
-from PySide6.QtCore import QDateTime
+from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QFileDialog, QTextBrowser, QDateTimeEdit
-from PySide6.QtGui import QTextCursor, QColor, Qt
+from PySide6.QtGui import QTextCursor, QColor
 from read_log import read_log
 from lab_5_1_1 import *
 from parsing import parsing_line
@@ -32,21 +32,45 @@ class LogViewer(QMainWindow):
         self.log_text_browser.cursorPositionChanged.connect(self.update_details_and_highlight_line)
         self.layout.addWidget(self.log_text_browser)
 
-        self.filter_start_label = QLabel("Filtruj od:")
-        self.layout.addWidget(self.filter_start_label)
+        # Filtracja od - data
+        self.filter_start_date_label = QLabel("Filtruj od (Data):")
+        self.layout.addWidget(self.filter_start_date_label)
 
-        self.filter_start_datetime_edit = QDateTimeEdit()
-        self.filter_start_datetime_edit.setDateTime(QDateTime(2023, 12, 13, 9, 0, 0))
-        self.filter_start_datetime_edit.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
-        self.layout.addWidget(self.filter_start_datetime_edit)
+        self.filter_start_date_edit = QDateTimeEdit()
+        self.filter_start_date_edit.setDateTime(QDateTime(2023, 12, 13, 0, 0, 0))
+        self.filter_start_date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.layout.addWidget(self.filter_start_date_edit)
 
-        self.filter_end_label = QLabel("Filtruj do:")
-        self.layout.addWidget(self.filter_end_label)
+        # Filtracja od - czas
+        self.filter_start_time_label = QLabel("Filtruj od (Czas):")
+        self.layout.addWidget(self.filter_start_time_label)
 
-        self.filter_end_datetime_edit = QDateTimeEdit()
-        self.filter_end_datetime_edit.setDateTime(QDateTime(2023, 12, 13, 10, 0, 0))
-        self.filter_end_datetime_edit.setDisplayFormat("yyyy-MM-dd HH:mm:ss")
-        self.layout.addWidget(self.filter_end_datetime_edit)
+        self.filter_start_time_edit = QDateTimeEdit()
+        self.filter_start_time_edit.setDateTime(QDateTime(2023, 12, 13, 9, 0, 0))
+        self.filter_start_time_edit.setDisplayFormat("HH:mm:ss")
+        self.layout.addWidget(self.filter_start_time_edit)
+
+        # Filtracja do - data
+        self.filter_end_date_label = QLabel("Filtruj do (Data):")
+        self.layout.addWidget(self.filter_end_date_label)
+
+        self.filter_end_date_edit = QDateTimeEdit()
+        self.filter_end_date_edit.setDateTime(QDateTime(2023, 12, 13, 0, 0, 0))
+        self.filter_end_date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.layout.addWidget(self.filter_end_date_edit)
+
+        # Filtracja do - czas
+        self.filter_end_time_label = QLabel("Filtruj do (Czas):")
+        self.layout.addWidget(self.filter_end_time_label)
+
+        self.filter_end_time_edit = QDateTimeEdit()
+        self.filter_end_time_edit.setDateTime(QDateTime(2023, 12, 13, 10, 0, 0))
+        self.filter_end_time_edit.setDisplayFormat("HH:mm:ss")
+        self.layout.addWidget(self.filter_end_time_edit)
+
+        self.filter_button = QPushButton("Filtruj")
+        self.filter_button.clicked.connect(self.filter_logs)
+        self.layout.addWidget(self.filter_button)
 
         self.details_label = QLabel("Log detalizowany:")
         self.layout.addWidget(self.details_label)
@@ -106,11 +130,19 @@ class LogViewer(QMainWindow):
             self.details_text.clear()
 
     def filter_logs(self):
-        start_datetime = self.filter_start_datetime_edit.dateTime().toPython()
-        end_datetime = self.filter_end_datetime_edit.dateTime().toPython()
+        start_date = self.filter_start_date_edit.date().toPython()
+        start_time = self.filter_start_time_edit.time().toPython()
+        end_date = self.filter_end_date_edit.date().toPython()
+        end_time = self.filter_end_time_edit.time().toPython()
+
+        start_datetime = QDateTime(start_date, start_time).toPython()
+        end_datetime = QDateTime(end_date, end_time).toPython()
+
         self.filtered_logs = [log for log in self.lista_dict if
                               start_datetime <= convert_str_to_datetime(log.get('date')) <= end_datetime]
+
         log_entries = [entry['date'] + entry['message'] + '...' for entry in self.filtered_logs]
+
         self.log_text_browser.clear()
         self.log_text_browser.append('\n'.join(log_entries))
 
