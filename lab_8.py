@@ -72,6 +72,14 @@ class LogViewer(QMainWindow):
         self.filter_button.clicked.connect(self.filter_logs)
         self.layout.addWidget(self.filter_button)
 
+        self.remove_date_button = QPushButton("Usuń datę")
+        self.remove_date_button.clicked.connect(self.remove_date_filter)
+        self.layout.addWidget(self.remove_date_button)
+
+        self.remove_time_button = QPushButton("Usuń godzinę")
+        self.remove_time_button.clicked.connect(self.remove_time_filter)
+        self.layout.addWidget(self.remove_time_button)
+
         self.details_label = QLabel("Log detalizowany:")
         self.layout.addWidget(self.details_label)
 
@@ -95,7 +103,7 @@ class LogViewer(QMainWindow):
         cursor = self.log_text_browser.textCursor()
         selected_index = cursor.blockNumber()
 
-        # Sprawdź, czy zaznaczony wiersz znajduje się w zakresie przefiltrowanych logów
+        # Sprawdź, czy zaznaczony wiersz znajduje się w przefiltrowanych logach
         if selected_index < len(self.filtered_logs):
             selected_log = self.filtered_logs[selected_index]
             ipv4s = get_ipv4s_from_log(selected_log)
@@ -114,11 +122,7 @@ class LogViewer(QMainWindow):
                 prev_highlighted_block = self.log_text_browser.document().findBlockByNumber(self.highlighted_index)
                 prev_cursor = QTextCursor(prev_highlighted_block)
                 prev_cursor.clearSelection()
-                prev_cursor.select(QTextCursor.BlockUnderCursor)
                 prev_cursor.setCharFormat(self.log_text_browser.textCursor().charFormat())
-                char_format = prev_cursor.charFormat()
-                char_format.setBackground(Qt.white)  # Przywracamy białe tło dla poprzedniego wiersza
-                prev_cursor.setCharFormat(char_format)
 
             # Podświetlenie bieżącego wiersza
             cursor.select(QTextCursor.BlockUnderCursor)
@@ -138,13 +142,27 @@ class LogViewer(QMainWindow):
         start_datetime = QDateTime(start_date, start_time).toPython()
         end_datetime = QDateTime(end_date, end_time).toPython()
 
-        self.filtered_logs = [log for log in self.lista_dict if
-                              start_datetime <= convert_str_to_datetime(log.get('date')) <= end_datetime]
+        # Wykonaj filtrowanie tylko jeśli podano jakiekolwiek daty i czasy
+        if start_datetime or end_datetime:
+            self.filtered_logs = [log for log in self.lista_dict if
+                                  start_datetime <= convert_str_to_datetime(log.get('date')) <= end_datetime]
+        else:
+            # Jeśli nie podano żadnych dat i czasów, wyświetl wszystkie wiersze logów
+            self.filtered_logs = self.lista_dict
 
         log_entries = [entry['date'] + entry['message'] + '...' for entry in self.filtered_logs]
-
         self.log_text_browser.clear()
         self.log_text_browser.append('\n'.join(log_entries))
+
+    def remove_date_filter(self):
+        self.filter_start_date_edit.setDate(QDateTime(1970, 1, 1, 0, 0, 0).date())
+        self.filter_end_date_edit.setDate(QDateTime(2100, 12, 31, 0, 0, 0).date())
+        self.filter_logs()
+
+    def remove_time_filter(self):
+        self.filter_start_time_edit.setTime(QDateTime(2023, 12, 13, 0, 0, 0).time())
+        self.filter_end_time_edit.setTime(QDateTime(2023, 12, 13, 23, 59, 59).time())
+        self.filter_logs()
 
 
 if __name__ == '__main__':
