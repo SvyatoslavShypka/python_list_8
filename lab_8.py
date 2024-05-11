@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtCore import QDateTime, Qt, QTime, QDate
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel, QFileDialog, QTextBrowser, QDateTimeEdit
 from PySide6.QtGui import QTextCursor, QColor
 from read_log import read_log
@@ -103,7 +103,24 @@ class LogViewer(QMainWindow):
         cursor = self.log_text_browser.textCursor()
         selected_index = cursor.blockNumber()
 
-        # Sprawdź, czy zaznaczony wiersz znajduje się w przefiltrowanych logach
+        # Wyczyszczenie poprzedniego podświetlenia
+        if self.highlighted_index != -1:
+            prev_block = self.log_text_browser.document().findBlockByNumber(self.highlighted_index)
+            prev_cursor = QTextCursor(prev_block)
+            prev_cursor.select(QTextCursor.BlockUnderCursor)
+            char_format = prev_cursor.charFormat()
+            char_format.setBackground(Qt.white)  # Powrót do koloru tła standardowego
+            prev_cursor.setCharFormat(char_format)
+
+        # Zaznaczenie aktualnego wiersza na żółto
+        cursor.select(QTextCursor.BlockUnderCursor)
+        char_format = cursor.charFormat()
+        char_format.setBackground(QColor("#FFFF00"))  # Kolor tła podświetlenia (np. żółty)
+        cursor.setCharFormat(char_format)
+
+        self.highlighted_index = selected_index
+
+        # Aktualizacja danych szczegółowych
         if selected_index < len(self.filtered_logs):
             selected_log = self.filtered_logs[selected_index]
             ipv4s = get_ipv4s_from_log(selected_log)
@@ -116,20 +133,6 @@ class LogViewer(QMainWindow):
 
             details_text = f"IPv4s: {ipv4s}\nUsers: {users}\nMessage Type: {message_type}\nDate: {log_date}\nStatus Code: {status_code}"
             self.details_text.setText(details_text)
-
-            # Wyczyszczenie podświetlenia poprzedniego wiersza
-            if self.highlighted_index != -1:
-                prev_highlighted_block = self.log_text_browser.document().findBlockByNumber(self.highlighted_index)
-                prev_cursor = QTextCursor(prev_highlighted_block)
-                prev_cursor.clearSelection()
-                prev_cursor.setCharFormat(self.log_text_browser.textCursor().charFormat())
-
-            # Podświetlenie bieżącego wiersza
-            cursor.select(QTextCursor.BlockUnderCursor)
-            char_format = cursor.charFormat()
-            char_format.setBackground(QColor("#FFFF00"))  # Kolor tła podświetlenia (np. żółty)
-            cursor.setCharFormat(char_format)
-            self.highlighted_index = selected_index
         else:
             self.details_text.clear()
 
@@ -154,15 +157,28 @@ class LogViewer(QMainWindow):
         self.log_text_browser.clear()
         self.log_text_browser.append('\n'.join(log_entries))
 
+        # Sprawdź, czy poprzednio zaznaczony wiersz nadal jest na liście przefiltrowanych logów
+        if self.highlighted_index < len(self.filtered_logs):
+            # Zresetuj podświetlenie
+            self.update_details_and_highlight_line()
+        else:
+            # Zresetuj podświetlenie i wyzeruj indeks zaznaczonego wiersza
+            self.highlighted_index = -1
+
     def remove_date_filter(self):
-        self.filter_start_date_edit.setDate(QDateTime(1970, 1, 1, 0, 0, 0).date())
-        self.filter_end_date_edit.setDate(QDateTime(2100, 12, 31, 0, 0, 0).date())
+        self.filter_start_date_edit.setDate(QDate(1970, 1, 1))
+        self.filter_end_date_edit.setDate(QDate(2100, 12, 31))
         self.filter_logs()
 
     def remove_time_filter(self):
-        self.filter_start_time_edit.setTime(QDateTime(2023, 12, 13, 0, 0, 0).time())
-        self.filter_end_time_edit.setTime(QDateTime(2023, 12, 13, 23, 59, 59).time())
+        self.filter_start_time_edit.setTime(QTime(0, 0, 0))
+        self.filter_end_time_edit.setTime(QTime(23, 59, 59))
         self.filter_logs()
+
+        # Jeśli usunięto godzinę, zresetuj tylko filtry czasowe
+        if not self.filter_start_time_edit.time().isValid() and not self.filter_end_time_edit.time().isValid():
+            # Jeśli nie ma ustawionych żadnych godzin, pozostaw ostatnie wybrane daty
+            self.filter_logs()
 
 
 if __name__ == '__main__':
