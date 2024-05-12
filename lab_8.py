@@ -112,15 +112,21 @@ class LogViewer(QMainWindow):
             char_format.setBackground(Qt.white)  # Powrót do koloru tła standardowego
             prev_cursor.setCharFormat(char_format)
 
+        # Aktualizacja indeksu zaznaczonego wiersza
+        self.highlighted_index = selected_index
+
+        # Jeśli nie ma żadnych przefiltrowanych logów, wyczyść szczegóły i zakończ funkcję
+        if not self.filtered_logs:
+            self.details_text.clear()
+            return
+
         # Zaznaczenie aktualnego wiersza na żółto
         cursor.select(QTextCursor.BlockUnderCursor)
         char_format = cursor.charFormat()
         char_format.setBackground(QColor("#FFFF00"))  # Kolor tła podświetlenia (np. żółty)
         cursor.setCharFormat(char_format)
 
-        self.highlighted_index = selected_index
-
-        # Aktualizacja danych szczegółowych
+        # Aktualizacja danych szczegółowych, jeśli wiersz nadal istnieje w przefiltrowanych logach
         if selected_index < len(self.filtered_logs):
             selected_log = self.filtered_logs[selected_index]
             ipv4s = get_ipv4s_from_log(selected_log)
@@ -134,7 +140,15 @@ class LogViewer(QMainWindow):
             details_text = f"IPv4s: {ipv4s}\nUsers: {users}\nMessage Type: {message_type}\nDate: {log_date}\nStatus Code: {status_code}"
             self.details_text.setText(details_text)
         else:
+            # Jeśli zaznaczony wiersz przestał istnieć w przefiltrowanych logach, wyczyść szczegóły
             self.details_text.clear()
+
+            # Przesuń zaznaczenie wiersza na poprzedni, jeśli istnieje
+            if selected_index > 0:
+                cursor.movePosition(QTextCursor.PreviousBlock)
+                cursor.select(QTextCursor.BlockUnderCursor)
+                self.log_text_browser.setTextCursor(cursor)
+                self.update_details_and_highlight_line()
 
     def filter_logs(self):
         start_date = self.filter_start_date_edit.date().toPython()
@@ -153,6 +167,8 @@ class LogViewer(QMainWindow):
             # Jeśli nie podano żadnych dat i czasów, wyświetl wszystkie wiersze logów
             self.filtered_logs = self.lista_dict
 
+        print("Liczba przefiltrowanych logów:", len(self.filtered_logs))
+
         log_entries = [entry['date'] + entry['message'] + '...' for entry in self.filtered_logs]
         self.log_text_browser.clear()
         self.log_text_browser.append('\n'.join(log_entries))
@@ -169,16 +185,13 @@ class LogViewer(QMainWindow):
         self.filter_start_date_edit.setDate(QDate(1970, 1, 1))
         self.filter_end_date_edit.setDate(QDate(2100, 12, 31))
         self.filter_logs()
+        self.update_details_and_highlight_line()
 
     def remove_time_filter(self):
         self.filter_start_time_edit.setTime(QTime(0, 0, 0))
         self.filter_end_time_edit.setTime(QTime(23, 59, 59))
         self.filter_logs()
-
-        # Jeśli usunięto godzinę, zresetuj tylko filtry czasowe
-        if not self.filter_start_time_edit.time().isValid() and not self.filter_end_time_edit.time().isValid():
-            # Jeśli nie ma ustawionych żadnych godzin, pozostaw ostatnie wybrane daty
-            self.filter_logs()
+        self.update_details_and_highlight_line()
 
 
 if __name__ == '__main__':
