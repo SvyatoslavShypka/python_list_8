@@ -5,9 +5,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QTextBrowser, QDateTimeEdit
 )
 from PySide6.QtGui import QTextCursor, QColor
-from read_log import read_log  # Zaimportowanie funkcji do odczytu logów
 from lab_5_1_1 import *  # Zaimportowanie funkcji pomocniczych
-from parsing import parsing_line  # Zaimportowanie funkcji analizy linii logów
 from lab_5_1_3statistics import convert_str_to_datetime  # Zaimportowanie funkcji konwersji daty
 
 
