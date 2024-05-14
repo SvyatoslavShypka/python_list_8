@@ -10,7 +10,6 @@ from lab_5_1_3statistics import convert_str_to_datetime  # Zaimportowanie funkcj
 
 
 class LogViewer(QMainWindow):
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Przeglądarka logów")
